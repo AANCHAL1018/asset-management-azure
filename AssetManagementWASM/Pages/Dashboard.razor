@@ -1,0 +1,291 @@
+@page "/dashboard"
+@attribute [Authorize]
+@using AssetManagementWASM.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using System.Text.Json
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<div class="dashboard">
+    <h1>Dashboard</h1>
+    <p style="color:var(--muted)">Overview of your asset management system</p>
+
+    <!-- ===== Overview Widgets ===== -->
+    <div class="grid-widgets">
+        <div class="widget"><h2>@totalAssets</h2><p>Total Assets</p></div>
+        <div class="widget"><h2>@availableAssets</h2><p>Available Assets</p></div>
+        <div class="widget"><h2>@assignedAssets</h2><p>Assigned Assets</p></div>
+        <div class="widget"><h2>@underRepairAssets</h2><p>Under Repair</p></div>
+        <div class="widget"><h2>@retiredAssets</h2><p>Retired Assets</p></div>
+        <div class="widget"><h2>@spareAssets</h2><p>Spare Assets</p></div>
+        <div class="widget"><h2>@activeEmployees</h2><p>Active Employees</p></div>
+    </div>
+
+    <!-- ===== Main Content (Chart + Side Cards) ===== -->
+    <div class="grid-main">
+        <div class="card">
+            <h3>Assets by Type</h3>
+            <canvas id="assetsChart"></canvas>
+        </div>
+
+        <div class="horizontal-cards">
+            <!-- Recent Assets -->
+            <div class="card">
+                <h3>Recent Assets</h3>
+                <div class="list">
+                    @foreach (var a in assets.OrderByDescending(a => a.CreatedDate).Take(5))
+                    {
+                        <div class="list-item">
+                            <div class="list-text">
+                                <strong>@a.Name</strong><br />
+                                <small>@a.Type • @a.SerialNumber</small>
+                            </div>
+                            <span class="badge @GetStatusClass(a.Status)">@a.Status</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Active Employees -->
+            <div class="card">
+                <h3>Active Employees</h3>
+                <div class="list">
+                    @foreach (var e in employees.Where(e => e.Status == "Active").Take(5))
+                    {
+                        <div class="list-item">
+                            <div class="list-text">
+                                <strong>@e.FullName</strong><br />
+                                <small>@e.Designation • @e.Department</small>
+                            </div>
+                            <span class="badge active">Active</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Assets Table with Filters ===== -->
+    <div class="card">
+        <h3>All Assets</h3>
+        <div class="filters">
+            <input type="text" class="search-box" placeholder="🔍 Search..."
+                   value="@searchTerm" @oninput="OnSearchChanged" />
+
+            <select class="filter-dropdown" @bind="filterType">
+                <option value="">All Types</option>
+                @foreach (var type in assets.Select(a => a.Type).Distinct())
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+
+            <select class="filter-dropdown" @bind="filterStatus">
+                <option value="">All Status</option>
+                <option>Available</option>
+                <option>Assigned</option>
+                <option>Under Repair</option>
+                <option>Retired</option>
+            </select>
+
+            <button class="btn-primary" @onclick="ExportToCsv">⬇ Export CSV</button>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th @onclick="() => SortBy(nameof(Asset.Name))">Asset</th>
+                    <th @onclick="() => SortBy(nameof(Asset.Type))">Type</th>
+                    <th @onclick="() => SortBy(nameof(Asset.SerialNumber))">Serial</th>
+                    <th>Status</th>
+                    <th>Condition</th>
+                    <th>Warranty</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (filteredAssets.Count == 0)
+                {
+                    <tr><td colspan="6"><em>No assets found.</em></td></tr>
+                }
+                else
+                {
+                    @foreach (var a in filteredAssets.Skip((page - 1) * pageSize).Take(pageSize))
+                    {
+                        <tr>
+                            <td>@a.Name</td>
+                            <td>@a.Type</td>
+                            <td>@a.SerialNumber</td>
+                            <td><span class="badge @GetStatusClass(a.Status)">@a.Status</span></td>
+                            <td>@a.Condition</td>
+                            <td>@a.WarrantyExpiryDate.ToShortDateString()</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <button @onclick="PrevPage" disabled="@(page == 1)">◀</button>
+            <span>Page @(page) of @totalPages</span>
+            <button @onclick="NextPage" disabled="@(page == totalPages)">▶</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Asset> assets = new();
+    private List<Employee> employees = new();
+    private List<Asset> filteredAssets = new();
+
+    private int totalAssets, availableAssets, assignedAssets, underRepairAssets, retiredAssets, spareAssets, activeEmployees;
+
+    private string searchTerm = "";
+    private string sortField = nameof(Asset.Name);
+    private bool sortAsc = true;
+
+    private int page = 1;
+    private int pageSize = 5;
+    private int totalPages => (int)Math.Ceiling((double)filteredAssets.Count / pageSize);
+
+    private string _filterType = "";
+    private string filterType
+    {
+        get => _filterType;
+        set { _filterType = value; ApplyFilters(); }
+    }
+
+    private string _filterStatus = "";
+    private string filterStatus
+    {
+        get => _filterStatus;
+        set { _filterStatus = value; ApplyFilters(); }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            assets = await FetchWithCookies<List<Asset>>("api/assets") ?? new();
+            employees = await FetchWithCookies<List<Employee>>("api/employees") ?? new();
+
+            CalculateStats();
+            ApplyFilters();
+
+            if (assets.Any())
+                await LoadChart();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private async Task<T?> FetchWithCookies<T>(string endpoint)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await Http.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login", true);
+            return default;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>();
+    }
+
+    private void CalculateStats()
+    {
+        totalAssets = assets.Count;
+        availableAssets = assets.Count(a => a.Status == "Available");
+        assignedAssets = assets.Count(a => a.Status == "Assigned");
+        underRepairAssets = assets.Count(a => a.Status == "Under Repair");
+        retiredAssets = assets.Count(a => a.Status == "Retired");
+        spareAssets = assets.Count(a => a.IsSpare);
+        activeEmployees = employees.Count(e => e.Status == "Active");
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<Asset> query = assets;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query = query.Where(a =>
+                a.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                a.SerialNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filterType))
+            query = query.Where(a => a.Type == filterType);
+
+        if (!string.IsNullOrWhiteSpace(filterStatus))
+            query = query.Where(a => a.Status == filterStatus);
+
+        query = sortAsc
+            ? query.OrderBy(a => a.GetType().GetProperty(sortField)?.GetValue(a))
+            : query.OrderByDescending(a => a.GetType().GetProperty(sortField)?.GetValue(a));
+
+        filteredAssets = query.ToList();
+    }
+
+    private void SortBy(string field)
+    {
+        if (sortField == field) sortAsc = !sortAsc;
+        else { sortField = field; sortAsc = true; }
+        ApplyFilters();
+    }
+
+    private void PrevPage() { if (page > 1) page--; }
+    private void NextPage() { if (page < totalPages) page++; }
+
+    private string GetStatusClass(string status) =>
+        status.ToLower() switch
+        {
+            "available" => "available",
+            "assigned" => "assigned",
+            "under repair" => "underrepair",
+            "retired" => "retired",
+            _ => ""
+        };
+
+    private async Task LoadChart()
+    {
+        try
+        {
+            var typeCounts = assets
+                .GroupBy(a => a.Type)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToList();
+
+            await JS.InvokeVoidAsync("renderAssetsChart",
+                typeCounts.Select(t => t.Type),
+                typeCounts.Select(t => t.Count));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chart render failed: {ex.Message}");
+        }
+    }
+
+    private async Task ExportToCsv()
+    {
+        var csv = "Name,Type,Serial,Status,Condition,Warranty\n" +
+                  string.Join("\n", filteredAssets.Select(a =>
+                      $"{a.Name},{a.Type},{a.SerialNumber},{a.Status},{a.Condition},{a.WarrantyExpiryDate:yyyy-MM-dd}"));
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", "assets.csv", base64);
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+}

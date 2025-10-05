@@ -1,0 +1,259 @@
+@page "/employees"
+@attribute [Authorize]
+@using AssetManagementWASM.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+
+<link href="css/employees.css" rel="stylesheet" />
+
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h1>Employees</h1>
+            <p style="color:var(--muted)">Manage your organization's employees</p>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddForm">+ Add Employee</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-error" : "alert-success")">@message</div>
+}
+
+<div class="card">
+    <div class="filters-row">
+        <input type="text" placeholder="🔍 Search employees..." class="form-control"
+               value="@searchTerm" @oninput="OnSearchChanged" />
+
+        <select class="form-control" @bind="selectedStatus" @bind:event="onchange">
+            <option value="">All Status</option>
+            <option>Active</option>
+            <option>Inactive</option>
+        </select>
+
+        <select class="form-control" @bind="selectedDepartment" @bind:event="onchange">
+            <option value="">All Departments</option>
+            @foreach (var dept in employees.Select(e => e.Department).Where(d => !string.IsNullOrEmpty(d)).Distinct().OrderBy(d => d))
+            {
+                <option>@dept</option>
+            }
+        </select>
+
+        <select class="form-control" @bind="selectedDesignation" @bind:event="onchange">
+            <option value="">All Designations</option>
+            @foreach (var desig in employees.Select(e => e.Designation).Where(d => !string.IsNullOrEmpty(d)).Distinct().OrderBy(d => d))
+            {
+                <option>@desig</option>
+            }
+        </select>
+
+        <button class="btn-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (filteredEmployees == null)
+            {
+                <tr><td colspan="6"><em>Loading...</em></td></tr>
+            }
+            else if (filteredEmployees.Count == 0)
+            {
+                <tr><td colspan="6">No employees found.</td></tr>
+            }
+            else
+            {
+                @foreach (var e in filteredEmployees)
+                {
+                    <tr>
+                        <td><strong>@e.FullName</strong><div style="font-size:12px;color:var(--muted)">ID: @e.Id</div></td>
+                        <td>@e.Department</td>
+                        <td>@e.Designation</td>
+                        <td>📧 @e.Email <br /> 📞 @e.PhoneNumber</td>
+                        <td><span class="badge @(e.Status.ToLower() == "active" ? "active" : "inactive")">@e.Status</span></td>
+                        <td>
+                            <button class="btn" @onclick="() => EditEmployee(e)">✏️</button>
+                            <button class="btn" style="color:red" @onclick="() => DeleteEmployee(e.Id)">🗑️</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (showForm)
+{
+    <div class="card" style="margin-top:16px;">
+        <h3>@(editingEmployee.Id == 0 ? "Add New Employee" : "Edit Employee")</h3>
+
+        <input class="form-control" placeholder="Full Name *" @bind="editingEmployee.FullName" />
+        <input class="form-control" placeholder="Department *" @bind="editingEmployee.Department" />
+        <input class="form-control" placeholder="Designation" @bind="editingEmployee.Designation" />
+        <input class="form-control" placeholder="Email *" @bind="editingEmployee.Email" />
+        <input class="form-control" placeholder="Phone Number *" @bind="editingEmployee.PhoneNumber" />
+
+        <select class="form-control" @bind="editingEmployee.Status">
+            <option>Active</option>
+            <option>Inactive</option>
+        </select>
+
+        <div style="margin-top:8px;">
+            <button class="btn-primary" @onclick="SaveEmployee">Save</button>
+            <button class="btn" @onclick="() => showForm=false">Cancel</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Employee> employees = new();
+    private List<Employee> filteredEmployees = new();
+    private Employee editingEmployee = new();
+    private bool showForm = false;
+    private string searchTerm = "";
+    private string message = "";
+    private bool isError = false;
+
+    private string selectedStatus = "";
+    private string selectedDepartment = "";
+    private string selectedDesignation = "";
+
+    protected override async Task OnInitializedAsync() => await LoadEmployees();
+
+    private async Task LoadEmployees()
+    {
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/employees");
+            request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+            var response = await Http.SendAsync(request);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+            employees = await response.Content.ReadFromJsonAsync<List<Employee>>() ?? new();
+            ApplyFilter();
+        }
+        catch
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        filteredEmployees = employees
+            .Where(e =>
+                (string.IsNullOrWhiteSpace(searchTerm) ||
+                 e.FullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                 e.Department.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                 e.Designation.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrEmpty(selectedStatus) || e.Status == selectedStatus) &&
+                (string.IsNullOrEmpty(selectedDepartment) || e.Department == selectedDepartment) &&
+                (string.IsNullOrEmpty(selectedDesignation) || e.Designation == selectedDesignation))
+            .ToList();
+    }
+
+    private void ResetFilters()
+    {
+        searchTerm = "";
+        selectedStatus = "";
+        selectedDepartment = "";
+        selectedDesignation = "";
+        ApplyFilter();
+    }
+
+    private void ShowAddForm()
+    {
+        editingEmployee = new Employee { CreatedDate = DateTime.Now, Status = "Active" };
+        showForm = true;
+    }
+
+    private void EditEmployee(Employee employee)
+    {
+        editingEmployee = new Employee
+        {
+            Id = employee.Id,
+            FullName = employee.FullName,
+            Department = employee.Department,
+            Designation = employee.Designation,
+            Email = employee.Email,
+            PhoneNumber = employee.PhoneNumber,
+            Status = employee.Status,
+            CreatedDate = employee.CreatedDate
+        };
+        showForm = true;
+    }
+
+    private async Task SaveEmployee()
+    {
+        var request = new HttpRequestMessage(editingEmployee.Id == 0 ? HttpMethod.Post : HttpMethod.Put,
+            editingEmployee.Id == 0 ? "api/employees" : $"api/employees/{editingEmployee.Id}");
+
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+        request.Content = JsonContent.Create(editingEmployee);
+
+        var response = await Http.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            message = "✅ Employee saved successfully.";
+            showForm = false;
+            await LoadEmployees();
+        }
+        else
+        {
+            message = "⚠️ Failed to save employee.";
+            isError = true;
+        }
+    }
+
+    private async Task DeleteEmployee(int id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"api/employees/{id}");
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await Http.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            message = "🗑️ Employee deleted.";
+            await LoadEmployees();
+        }
+        else
+        {
+            message = "⚠️ Delete failed.";
+            isError = true;
+        }
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+}

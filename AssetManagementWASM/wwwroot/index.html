@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asset Manager</title>
+
+    <!-- Global Styles -->
+    <link href="css/site.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">Loading...</div>
+
+    <!-- Blazor WebAssembly -->
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <!-- Chart.js for dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom JS helpers -->
+     <script src="js/theme.js"></script>
+    <script>
+      // Render Pie Chart for Assets
+      function renderAssetsChart(labels, data) {
+          var ctx = document.getElementById('assetsChart').getContext('2d');
+          if (window.assetChart) {
+              window.assetChart.destroy(); // reset if re-rendering
+          }
+          window.assetChart = new Chart(ctx, {
+              type: 'pie',
+              data: {
+                  labels: labels,
+                  datasets: [{
+                      data: data,
+                      backgroundColor: [
+                          '#3b82f6', // Blue
+                          '#22c55e', // Green
+                          '#f59e0b', // Orange
+                          '#ef4444', // Red
+                          '#6366f1'  // Indigo
+                      ]
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  plugins: {
+                      legend: {
+                          position: 'bottom'
+                      }
+                  }
+              }
+          });
+      }
+
+      // CSV Download Helper
+      function downloadFile(filename, base64) {
+          const link = document.createElement("a");
+          link.href = "data:text/csv;base64," + base64;
+          link.download = filename;
+          link.click();
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,316 @@
+@page "/assignments"
+@attribute [Authorize]
+@using AssetManagementWASM.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using System.Text.Json
+
+<link href="css/assignments.css" rel="stylesheet" />
+
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h1>Asset Assignments</h1>
+            <p style="color:var(--muted)">Track asset assignments and returns</p>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddForm">+ New Assignment</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-error" : "alert-success")">@message</div>
+}
+
+<div class="card">
+    <h3>Assignment History</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" placeholder="🔍 Search assignments..." class="form-control"
+               value="@searchTerm" @oninput="OnSearchChanged" />
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Employee</th>
+                <th>Assigned Date</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (filteredHistory == null)
+            {
+                <tr><td colspan="7"><em>Loading...</em></td></tr>
+            }
+            else if (filteredHistory.Count == 0)
+            {
+                <tr><td colspan="7">No assignments found.</td></tr>
+            }
+            else
+            {
+                @foreach (var h in filteredHistory)
+                {
+                    var asset = assets.FirstOrDefault(a => a.Id == h.AssetId);
+                    var employee = employees.FirstOrDefault(e => e.Id == h.EmployeeId);
+                    var duration = (h.ReturnedDate ?? DateTime.Now) - h.AssignedDate;
+                    var status = h.ReturnedDate == null ? "Active" : "Returned";
+
+                    <tr>
+                        <td><strong>@asset?.Name</strong><div style="font-size:12px;color:var(--muted)">@asset?.Type • @asset?.SerialNumber</div></td>
+                        <td><strong>@employee?.FullName</strong><div style="font-size:12px;color:var(--muted)">@employee?.Designation • @employee?.Department</div></td>
+                        <td>📅 @h.AssignedDate.ToString("MMM dd, yyyy")</td>
+                        <td>@duration.Days days</td>
+                        <td><span class="badge @(status=="Active" ? "active" : "inactive")">@status</span></td>
+                        <td>@h.Notes</td>
+                        <td>
+                            @if (h.ReturnedDate == null)
+                            {
+                                <button class="btn" title="Mark Returned" @onclick="() => MarkReturned(h.Id)">↩️</button>
+                            }
+                            <button class="btn" title="Edit" @onclick="() => EditAssignment(h)">✏️</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Quick Assignment</h3>
+    <div class="quick-assign">
+        <div>
+            <label>Available Assets</label>
+            <select class="form-control" @bind="selectedAssetId">
+                <option value="">Select an asset...</option>
+                @foreach (var a in assets.Where(a => a.Status == "Available"))
+                {
+                    <option value="@a.Id">@a.Name (@a.SerialNumber)</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label>Active Employees</label>
+            <select class="form-control" @bind="selectedEmployeeId">
+                <option value="">Select an employee...</option>
+                @foreach (var e in employees.Where(e => e.Status == "Active"))
+                {
+                    <option value="@e.Id">@e.FullName (@e.Department)</option>
+                }
+            </select>
+        </div>
+        <button class="btn-primary" @onclick="AssignAsset">Assign Asset</button>
+    </div>
+</div>
+
+@if (showForm)
+{
+    <div class="card" style="margin-top:16px;">
+        <h3>@(editingHistory.Id == 0 ? "New Assignment" : "Edit Assignment")</h3>
+
+        <label>Asset</label>
+        <select class="form-control" @bind="editingHistory.AssetId">
+            @foreach (var a in assets.Where(a => a.Status == "Available" || a.Id == editingHistory.AssetId))
+            {
+                <option value="@a.Id">@a.Name (@a.SerialNumber)</option>
+            }
+        </select>
+
+        <label>Employee</label>
+        <select class="form-control" @bind="editingHistory.EmployeeId">
+            @foreach (var e in employees.Where(e => e.Status == "Active" || e.Id == editingHistory.EmployeeId))
+            {
+                <option value="@e.Id">@e.FullName (@e.Department)</option>
+            }
+        </select>
+
+        <label>Notes</label>
+        <textarea class="form-control" @bind="editingHistory.Notes"></textarea>
+
+        <div style="margin-top:8px;">
+            <button class="btn-primary" @onclick="SaveAssignment">Save</button>
+            <button class="btn" @onclick="() => showForm=false">Cancel</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AssetHistory> history = new();
+    private List<AssetHistory> filteredHistory = new();
+    private List<Asset> assets = new();
+    private List<Employee> employees = new();
+    private AssetHistory editingHistory = new();
+    private bool showForm = false;
+    private string searchTerm = "";
+    private string? selectedAssetId;
+    private string? selectedEmployeeId;
+    private string message = "";
+    private bool isError = false;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        try
+        {
+            assets = await FetchWithCookies<List<Asset>>("api/assets") ?? new();
+            employees = await FetchWithCookies<List<Employee>>("api/employees") ?? new();
+            history = await FetchWithCookies<List<AssetHistory>>("api/assethistories") ?? new();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            isError = true;
+            message = $"⚠️ Failed to load data: {ex.Message}";
+        }
+    }
+
+    private async Task<T?> FetchWithCookies<T>(string endpoint)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await Http.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login", true);
+            return default;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>();
+    }
+
+    private async Task<HttpResponseMessage> SendWithCookies<T>(HttpMethod method, string endpoint, T? body = default)
+    {
+        var request = new HttpRequestMessage(method, endpoint);
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        if (body != null)
+            request.Content = JsonContent.Create(body);
+
+        return await Http.SendAsync(request);
+    }
+
+    private void ApplyFilter()
+    {
+        filteredHistory = string.IsNullOrWhiteSpace(searchTerm)
+            ? history.ToList()
+            : history
+                .Where(h =>
+                    (assets.FirstOrDefault(a => a.Id == h.AssetId)?.Name ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    (employees.FirstOrDefault(e => e.Id == h.EmployeeId)?.FullName ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void ShowAddForm()
+    {
+        editingHistory = new AssetHistory { AssignedDate = DateTime.Now };
+        showForm = true;
+        message = "";
+    }
+
+    private void EditAssignment(AssetHistory historyItem)
+    {
+        editingHistory = new AssetHistory
+        {
+            Id = historyItem.Id,
+            AssetId = historyItem.AssetId,
+            EmployeeId = historyItem.EmployeeId,
+            AssignedDate = historyItem.AssignedDate,
+            ReturnedDate = historyItem.ReturnedDate,
+            Notes = historyItem.Notes
+        };
+        showForm = true;
+        message = "";
+    }
+
+    private async Task SaveAssignment()
+    {
+        HttpResponseMessage response;
+        if (editingHistory.Id == 0)
+            response = await SendWithCookies(HttpMethod.Post, "api/assethistories", editingHistory);
+        else
+            response = await SendWithCookies(HttpMethod.Put, $"api/assethistories/{editingHistory.Id}", editingHistory);
+
+        if (response.IsSuccessStatusCode)
+        {
+            message = "✅ Assignment saved successfully.";
+            showForm = false;
+            await LoadData();
+        }
+        else
+            HandleErrorResponse(await response.Content.ReadAsStringAsync());
+    }
+
+    private async Task AssignAsset()
+    {
+        if (string.IsNullOrEmpty(selectedAssetId) || string.IsNullOrEmpty(selectedEmployeeId))
+        {
+            isError = true;
+            message = "⚠️ Please select both an asset and an employee.";
+            return;
+        }
+
+        var newHistory = new AssetHistory
+        {
+            AssetId = int.Parse(selectedAssetId),
+            EmployeeId = int.Parse(selectedEmployeeId),
+            AssignedDate = DateTime.Now,
+            Notes = "Assigned via Quick Assignment"
+        };
+
+        var response = await SendWithCookies(HttpMethod.Post, "api/assethistories", newHistory);
+        if (response.IsSuccessStatusCode)
+        {
+            message = "✅ Asset assigned successfully.";
+            await LoadData();
+        }
+        else
+            HandleErrorResponse(await response.Content.ReadAsStringAsync());
+    }
+
+    private async Task MarkReturned(int historyId)
+    {
+        var item = history.FirstOrDefault(h => h.Id == historyId);
+        if (item == null || item.ReturnedDate != null) return;
+
+        item.ReturnedDate = DateTime.Now;
+
+        var response = await SendWithCookies(HttpMethod.Put, $"api/assethistories/{item.Id}", item);
+        if (response.IsSuccessStatusCode)
+        {
+            message = "↩️ Asset marked as returned.";
+            await LoadData();
+        }
+        else
+            HandleErrorResponse(await response.Content.ReadAsStringAsync());
+    }
+
+    private void HandleErrorResponse(string rawResponse)
+    {
+        isError = true;
+        try
+        {
+            var errorObj = JsonSerializer.Deserialize<Dictionary<string, string>>(rawResponse);
+            message = errorObj != null && errorObj.ContainsKey("message")
+                ? $"⚠️ {errorObj["message"]}"
+                : "⚠️ An unexpected error occurred.";
+        }
+        catch
+        {
+            message = $"⚠️ {rawResponse}";
+        }
+    }
+}

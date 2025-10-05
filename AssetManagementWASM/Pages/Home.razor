@@ -1,0 +1,45 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard | Asset Management</PageTitle>
+
+<!-- Custom page layout -->
+<link href="css/home.css" rel="stylesheet" />
+
+<div class="home-container">
+    <div class="welcome-card">
+        <h1 class="welcome-title">Welcome to Asset Management System</h1>
+        <p class="welcome-subtitle">
+            A centralized platform to manage, track, and analyze your assets efficiently.
+        </p>
+
+        <div class="action-buttons">
+            <button class="btn primary-btn" @onclick="NavigateToAssets">View Assets</button>
+            <button class="btn secondary-btn" @onclick="Logout">Logout</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Navigates to the main assets management page.
+    /// </summary>
+    private void NavigateToAssets()
+    {
+        Navigation.NavigateTo("/assets");
+    }
+
+    /// <summary>
+    /// Logs out the current user by calling the AuthStateProvider.
+    /// </summary>
+    private async Task Logout()
+    {
+        if (AuthStateProvider is CustomAuthStateProvider customAuth)
+        {
+            await customAuth.LogoutAsync();
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+}

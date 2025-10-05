@@ -1,0 +1,197 @@
+@page "/reports"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using System.Text.Json
+@using AssetManagementWASM.Models
+
+<link href="css/reports.css" rel="stylesheet" />
+
+<div class="reports">
+    <h1>Reports & Analytics</h1>
+    <p style="color:var(--muted)">Asset management insights and reports</p>
+
+    <!-- Top Stats -->
+    <div class="grid-widgets">
+        <div class="widget warning">
+            <h2>@expiringAssets.Count</h2>
+            <p>Assets Expiring Soon</p>
+            <small>Within 6 months</small>
+        </div>
+        <div class="widget danger">
+            <h2>@needAttention.Count</h2>
+            <p>Need Attention</p>
+            <small>Repair required</small>
+        </div>
+        <div class="widget success">
+            <h2>@utilizationRate%</h2>
+            <p>Utilization Rate</p>
+            <small>Assets in use</small>
+        </div>
+        <div class="widget info">
+            <h2>@avgAssignmentDays days</h2>
+            <p>Avg Assignment</p>
+            <small>Per assignment</small>
+        </div>
+    </div>
+
+    <div class="grid-main">
+        <!-- Warranty Expiring -->
+        <div class="card">
+            <h3>⚠ Warranty Expiring Soon</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>Expiry Date</th>
+                        <th>Days Left</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (expiringAssets.Count == 0)
+                    {
+                        <tr><td colspan="3">No expiring assets found.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var a in expiringAssets)
+                        {
+                            var daysLeft = (a.WarrantyExpiryDate - DateTime.Now).Days;
+                            <tr>
+                                <td><strong>@a.Name</strong><br /><small>@a.SerialNumber</small></td>
+                                <td>📅 @a.WarrantyExpiryDate.ToShortDateString()</td>
+                                <td><span class="badge danger">@daysLeft days</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Assets Needing Attention -->
+        <div class="card">
+            <h3>🛠 Assets Needing Attention</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>Condition</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (needAttention.Count == 0)
+                    {
+                        <tr><td colspan="3">No assets needing attention.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var a in needAttention)
+                        {
+                            <tr>
+                                <td><strong>@a.Name</strong><br /><small>@a.SerialNumber</small></td>
+                                <td><span class="badge warning">@a.Condition</span></td>
+                                <td><span class="badge">@a.Status</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Employee Utilization -->
+    <div class="card">
+        <h3>👥 Employee Utilization</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Assigned Assets</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (employeeUtilization.Count == 0)
+                {
+                    <tr><td colspan="2">No employee data available.</td></tr>
+                }
+                else
+                {
+                    @foreach (var e in employeeUtilization)
+                    {
+                        <tr>
+                            <td>@e.FullName</td>
+                            <td>@e.AssignedAssets</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<AssetReportModel> expiringAssets = new();
+    private List<AssetReportModel> needAttention = new();
+    private List<EmployeeUtilizationModel> employeeUtilization = new();
+    private int utilizationRate = 0;
+    private int avgAssignmentDays = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            expiringAssets = await FetchWithCookies<List<AssetReportModel>>("api/reports/expiring-assets") ?? new();
+            needAttention = await FetchWithCookies<List<AssetReportModel>>("api/reports/assets-by-status") ?? new();
+            employeeUtilization = await FetchWithCookies<List<EmployeeUtilizationModel>>("api/reports/employee-utilization") ?? new();
+
+            CalculateSummaryStats();
+        }
+        catch
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private async Task<T?> FetchWithCookies<T>(string endpoint)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:5299/{endpoint}");
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await Http.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login", true);
+            return default;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>();
+    }
+
+    private void CalculateSummaryStats()
+    {
+        var totalAssets = needAttention.Count;
+        var assigned = needAttention.Count(a => a.Status == "Assigned");
+
+        utilizationRate = totalAssets == 0 ? 0 : (int)((double)assigned / totalAssets * 100);
+        avgAssignmentDays = 12; // placeholder until Dapper query for average duration
+    }
+
+    // 🔹 Report Models
+    private class AssetReportModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string SerialNumber { get; set; } = string.Empty;
+        public string Condition { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime WarrantyExpiryDate { get; set; }
+    }
+
+    private class EmployeeUtilizationModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public int AssignedAssets { get; set; }
+    }
+}

@@ -1,0 +1,68 @@
+@page "/login"
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<!-- Import the CSS -->
+<link href="css/login.css" rel="stylesheet" />
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>Asset Management Login</h2>
+
+        <!-- Show error if login fails -->
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="error-message">@ErrorMessage</div>
+        }
+
+        <!-- Username field -->
+        <div class="form-group">
+            <label>Username</label>
+            <input @bind="username" class="input-box" placeholder="Enter username" />
+        </div>
+
+        <!-- Password field -->
+        <div class="form-group">
+            <label>Password</label>
+            <input @bind="password" type="password" class="input-box" placeholder="Enter password" />
+        </div>
+
+        <!-- Login button -->
+        <button @onclick="HandleLogin" class="login-btn" disabled="@isLoading">
+            @(isLoading ? "Logging in..." : "Login")
+        </button>
+    </div>
+</div>
+
+@code {
+    // --- State variables ---
+    private string username = "";
+    private string password = "";
+    private string ErrorMessage = "";
+    private bool isLoading = false;
+
+    // --- Handles login button click ---
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        ErrorMessage = "";
+        StateHasChanged();
+
+        // Try logging in through Auth provider
+        var success = await AuthStateProvider.LoginAsync(username, password);
+
+        if (success)
+        {
+            // Redirect to home page on success
+            Navigation.NavigateTo("/", true);
+        }
+        else
+        {
+            // Show error on failed login
+            ErrorMessage = "Invalid username or password.";
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+}

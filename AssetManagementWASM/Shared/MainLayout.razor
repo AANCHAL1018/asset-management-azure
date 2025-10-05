@@ -1,0 +1,98 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject CustomAuthStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@inherits LayoutComponentBase
+
+<link href="css/mainlayout.css" rel="stylesheet" />
+
+<div class="app @theme">
+  <!-- Sidebar -->
+  <aside class="sidebar card">
+    <div class="logo">Asset Manager</div>
+    <div class="logo-sub">Corporate Asset Management</div>
+
+    <nav class="nav">
+      <NavLink class="nav-link" href="/dashboard" Match="NavLinkMatch.All">Dashboard</NavLink>
+      <NavLink class="nav-link" href="/employees">Employees</NavLink>
+      <NavLink class="nav-link" href="/assets">Assets</NavLink>
+      <NavLink class="nav-link" href="/assignments">Assignments</NavLink>
+      <NavLink class="nav-link" href="/reports">Reports</NavLink>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content">
+    <div class="topbar">
+      <h2>Asset Management System</h2>
+
+      <!-- Profile Dropdown -->
+      <div class="profile-menu">
+        <div class="profile-avatar" @onclick="ToggleDropdown">
+          <span>@(isAuthenticated ? username[..1].ToUpper() : "G")</span>
+        </div>
+
+        @if (dropdownOpen)
+        {
+          <div class="profile-dropdown">
+            @if (isAuthenticated)
+            {
+              <div class="dropdown-item username">👤 @username</div>
+              <div class="dropdown-item" @onclick="GoToDashboard">📊 Dashboard</div>
+              <div class="dropdown-item logout" @onclick="HandleLogout">🚪 Logout</div>
+            }
+            else
+            {
+              <div class="dropdown-item" @onclick="GoToLogin">🔐 Login</div>
+            } 
+          </div>
+        }
+      </div>
+    </div>
+    <div class="body-content">
+      @Body
+    </div>
+  </main>
+</div>
+
+@code {
+    private bool isAuthenticated = false;
+    private string username = "Guest";
+    private bool dropdownOpen = false;
+    private string theme = "light";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        if (isAuthenticated)
+            username = user.Identity?.Name ?? "Admin";
+
+        theme = await JS.InvokeAsync<string>("localStorage.getItem", "theme") ?? "light";
+        await JS.InvokeVoidAsync("applyTheme", theme);
+    }
+
+    private void ToggleDropdown() => dropdownOpen = !dropdownOpen;
+
+    private void GoToLogin() => Navigation.NavigateTo("/login", true);
+    private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+
+    private async Task HandleLogout()
+    {
+        await AuthStateProvider.LogoutAsync();
+        isAuthenticated = false;
+        username = "Guest";
+        dropdownOpen = false;
+        Navigation.NavigateTo("/login", true);
+    }
+
+    private async Task ToggleTheme()
+    {
+        theme = theme == "dark" ? "light" : "dark";
+        await JS.InvokeVoidAsync("localStorage.setItem", "theme", theme);
+        await JS.InvokeVoidAsync("applyTheme", theme);
+        dropdownOpen = false;
+    }
+}
