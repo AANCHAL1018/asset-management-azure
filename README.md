@@ -44,7 +44,7 @@ This project is fully deployed on *Microsoft Azure*.
 | Field | Value |
 |--------|--------|
 | *Username* | admin |
-| *Password* | admin@123 |
+| *Password* | YourStrongPassword123! |
 
 > These can be configured in appsettings.json or Azure App Configuration:
 > json
