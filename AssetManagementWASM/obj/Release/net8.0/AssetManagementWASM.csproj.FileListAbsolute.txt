@@ -1160,6 +1160,11 @@ C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publi
 C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\emcc-props.json
 C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\wwwroot\sample-data\weather.json
 C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\wwwroot\_framework\blazor.boot.json
-C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\hrhi35gf6r-xi8brp2hjt.gz
-C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\ds94g6h9g8-ay4tnnisre.gz
-C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\a6g8oi8j8k-q1pakjyxvm.gz
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\publish\AssetManagementWASM.staticwebassets.endpoints.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\publish\emcc-props.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\publish\wwwroot\sample-data\weather.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\bin\Release\net8.0\publish\publish\publish\publish\publish\wwwroot\_framework\blazor.boot.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\AssetManagementWASM.sourcelink.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\hrhi35gf6r-e8sqj7c9df.gz
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\ds94g6h9g8-k87tsq268s.gz
+C:\Users\aanch\sastaflipkart_final1\AssetManagementWASM\obj\Release\net8.0\compressed\a6g8oi8j8k-dw8czgnzwb.gz

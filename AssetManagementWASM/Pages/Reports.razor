@@ -156,7 +156,7 @@
 
     private async Task<T?> FetchWithCookies<T>(string endpoint)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:5299/{endpoint}");
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await Http.SendAsync(request);
