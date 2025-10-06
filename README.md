@@ -44,13 +44,13 @@ This project is fully deployed on *Microsoft Azure*.
 | Field | Value |
 |--------|--------|
 | *Username* | admin |
-| *Password* | YourStrongPassword123! |
+| *Password* | YourStrongAdminPassword123! |
 
 > These can be configured in appsettings.json or Azure App Configuration:
 > json
 > "AdminCredentials": {
 >   "Username": "admin",
->   "Password": "YourStrongPassword123!"
+>   "Password": "YourStrongAdminPassword123!"
 > }
 > 
 
