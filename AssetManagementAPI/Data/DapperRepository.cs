@@ -20,15 +20,16 @@ namespace AssetManagementAPI.Data
         public async Task<IEnumerable<dynamic>> GetAssetsByStatusAsync()
         {
             using var connection = new SqlConnection(_connectionString);
-            string sql = @"SELECT Status, COUNT(*) AS Count FROM Assets GROUP BY Status";
-            return await connection.QueryAsync(sql);
+                    string sql = @"SELECT Id, Name, SerialNumber, Condition, Status, WarrantyExpiryDate
+                   FROM Assets";
+                    return await connection.QueryAsync(sql);
         }
 
         // Example 2 — Assets nearing warranty expiry (within 6 months)
         public async Task<IEnumerable<dynamic>> GetExpiringAssetsAsync()
         {
             using var connection = new SqlConnection(_connectionString);
-            string sql = @"SELECT Id, Name, SerialNumber, WarrantyExpiryDate 
+            string sql = @"SELECT Id, Name, SerialNumber, WarrantyExpiryDate
                            FROM Assets
                            WHERE DATEDIFF(day, GETDATE(), WarrantyExpiryDate) <= 180";
             return await connection.QueryAsync(sql);

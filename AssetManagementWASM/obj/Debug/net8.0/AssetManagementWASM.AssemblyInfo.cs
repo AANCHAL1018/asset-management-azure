@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AssetManagementWASM")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1075b37da095a1d9dadffe905647f58e4a4aabf2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c592533d62520475add330126df7df170e2785b2")]
 [assembly: System.Reflection.AssemblyProductAttribute("AssetManagementWASM")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AssetManagementWASM")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

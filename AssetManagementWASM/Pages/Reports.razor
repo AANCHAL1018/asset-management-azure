@@ -12,7 +12,6 @@
     <h1>Reports & Analytics</h1>
     <p style="color:var(--muted)">Asset management insights and reports</p>
 
-    <!-- Top Stats -->
     <div class="grid-widgets">
         <div class="widget warning">
             <h2>@expiringAssets.Count</h2>
@@ -37,7 +36,6 @@
     </div>
 
     <div class="grid-main">
-        <!-- Warranty Expiring -->
         <div class="card">
             <h3>⚠ Warranty Expiring Soon</h3>
             <table class="table">
@@ -69,7 +67,6 @@
             </table>
         </div>
 
-        <!-- Assets Needing Attention -->
         <div class="card">
             <h3>🛠 Assets Needing Attention</h3>
             <table class="table">
@@ -92,7 +89,6 @@
                             <tr>
                                 <td><strong>@a.Name</strong><br /><small>@a.SerialNumber</small></td>
                                 <td><span class="badge warning">@a.Condition</span></td>
-                                <td><span class="badge">@a.Status</span></td>
                             </tr>
                         }
                     }
@@ -101,7 +97,6 @@
         </div>
     </div>
 
-    <!-- Employee Utilization -->
     <div class="card">
         <h3>👥 Employee Utilization</h3>
         <table class="table">
@@ -132,8 +127,9 @@
 </div>
 
 @code {
+    private List<AssetReportModel> allAssets = new(); 
     private List<AssetReportModel> expiringAssets = new();
-    private List<AssetReportModel> needAttention = new();
+    private List<AssetReportModel> needAttention = new(); 
     private List<EmployeeUtilizationModel> employeeUtilization = new();
     private int utilizationRate = 0;
     private int avgAssignmentDays = 0;
@@ -143,13 +139,25 @@
         try
         {
             expiringAssets = await FetchWithCookies<List<AssetReportModel>>("api/reports/expiring-assets") ?? new();
-            needAttention = await FetchWithCookies<List<AssetReportModel>>("api/reports/assets-by-status") ?? new();
+            
+            // 1. Fetch the full list of assets (or assets by status)
+            allAssets = await FetchWithCookies<List<AssetReportModel>>("api/reports/assets-by-status") ?? new();
+            
+
+            // Assumes "Poor" condition or "Repair Required" status designates "Needing Attention"
+            needAttention = allAssets
+                .Where(a => a.Condition == "Damaged" || a.Condition == "Needs Repair")
+                .ToList();
+
             employeeUtilization = await FetchWithCookies<List<EmployeeUtilizationModel>>("api/reports/employee-utilization") ?? new();
 
             CalculateSummaryStats();
         }
-        catch
+        catch (Exception ex)
         {
+            // Log the error for debugging purposes
+            Console.WriteLine($"Error loading reports: {ex.Message}");
+            // Navigate to login if a request fails, suggesting an auth issue
             Navigation.NavigateTo("/login", true);
         }
     }
@@ -172,8 +180,10 @@
 
     private void CalculateSummaryStats()
     {
-        var totalAssets = needAttention.Count;
-        var assigned = needAttention.Count(a => a.Status == "Assigned");
+        // Use the full list ('allAssets') for total/utilization calculations
+        var totalAssets = allAssets.Count; 
+        
+        var assigned = allAssets.Count(a => a.Status == "Assigned"); 
 
         utilizationRate = totalAssets == 0 ? 0 : (int)((double)assigned / totalAssets * 100);
         avgAssignmentDays = 12; // placeholder until Dapper query for average duration

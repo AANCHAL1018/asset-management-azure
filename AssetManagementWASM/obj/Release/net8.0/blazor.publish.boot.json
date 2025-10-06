@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "AssetManagementWASM",
   "resources": {
-    "hash": "sha256-x4TSM1+5wj6lV4Ihze9i+r3slzJ51+fqWATcvcG+dFg=",
+    "hash": "sha256-9ZEW1H2TDxoUyUrxaX6RR3+wuy966NNQwXwd3ofmejw=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-D0bzod5lwwSzPR43JC8TTCcZKw+3jIHOk8CZFCRj5is="
     },
@@ -89,7 +89,7 @@
       "System.Xml.Linq.wasm": "sha256-EM6EaFnUVh/Ff2JW7PlOGjAF3puLGxQnp/1gX+a+i6I=",
       "netstandard.wasm": "sha256-T577zPp/G1d2DAIMfzu+Sjl7a++4cWDPIvpILO4uz7U=",
       "System.Private.CoreLib.wasm": "sha256-dOOIG4Ykj/WSdF+cMq4url2ZFrfZdZ4aYLRkV/4/Szw=",
-      "AssetManagementWASM.wasm": "sha256-boDS3nfUbD9gSMSd4ew7/TmhxHFxMPAxr8aRL2Wa888="
+      "AssetManagementWASM.wasm": "sha256-SFwnXz5xbHjhHtY3U9MgS9U92U3GhqsQKhrm1dehmtQ="
     }
   },
   "cacheBootResources": true,

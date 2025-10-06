@@ -53,3 +53,12 @@
 .badge.danger { background: #ef4444; }
 .badge.warning { background: #f59e0b; }
 .badge.active { background: #3b82f6; }
+
+.husk {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: #ef4444;
+}

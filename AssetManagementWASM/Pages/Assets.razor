@@ -160,7 +160,7 @@
         catch (HttpRequestException ex)
         {
             isError = true;
-            message = "⚠️ Failed to load assets. Please log in again.";
+            message = $"⚠️ Failed to load assets. Please log in again.{ex.Message}";
         }
         catch (Exception ex)
         {

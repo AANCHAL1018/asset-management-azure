@@ -220,3 +220,17 @@ C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publis
 C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.deps.json
 C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.runtimeconfig.json
 C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.staticwebassets.endpoints.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Production.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.deps.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.runtimeconfig.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.staticwebassets.endpoints.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Production.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.deps.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.runtimeconfig.json
+C:\Users\aanch\sastaflipkart_final1\AssetManagementAPI\bin\Release\net8.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\AssetManagementAPI.staticwebassets.endpoints.json
